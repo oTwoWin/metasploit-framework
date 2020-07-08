@@ -2,6 +2,7 @@
 require 'msf/core/payload/apk'
 require 'active_support/core_ext/numeric/bytes'
 require 'msf/core/payload/windows/payload_db_conf'
+
 module Msf
 
   class PayloadGeneratorError < StandardError
@@ -108,6 +109,9 @@ module Msf
     # @!attribute encryption_iv
     #   @return [String] The initialization vector for the encryption (not all apply)
     attr_accessor :encryption_iv
+    # @!attribute evasion
+    #   @return [String] The antivirus name choosen for evasion
+    attr_accessor :evasion
 
 
     # @param opts [Hash] The options hash
@@ -130,6 +134,7 @@ module Msf
     # @option opts [Msf::Framework] :framework (see #framework)
     # @option opts [Boolean] :cli (see #cli)
     # @option opts [Boolean] :smallest (see #smallest)
+    # @option opts [String] :evasion (see #evasion)
     # @raise [KeyError] if framework is not provided in the options hash
     def initialize(opts={})
       @add_code   = opts.fetch(:add_code, '')
@@ -157,11 +162,15 @@ module Msf
       @encryption_format = opts.fetch(:encryption_format, nil)
       @encryption_key = opts.fetch(:encryption_key, nil)
       @encryption_iv = opts.fetch(:encryption_iv, nil)
-
+      @evasion = opts.fetch(:evasion, '')
       @framework  = opts.fetch(:framework)
 
       raise InvalidFormat, "invalid format: #{format}"  unless format_is_valid?
       raise ArgumentError, "invalid payload: #{payload}" unless payload_is_valid?
+
+      unless evasion.blank?
+        raise ArgumentError, "invalid evasion: #{evasion}" unless evasion_is_valid?
+      end 
 
       # A side-effecto of running framework.payloads.create is that
       # framework.payloads.keys gets pruned of unloadable payloads. So, we do it
@@ -357,6 +366,20 @@ module Msf
       end
     end
 
+    def evade_payload(shellcode)
+      # Recover encryption options
+      encryption_opts = {}
+      encryption_opts[:format] = encryption_format if encryption_format
+      encryption_opts[:iv] = encryption_iv if encryption_iv
+      encryption_opts[:key] = encryption_key if encryption_key
+      
+      # Create the evasion module
+      evasion_module = framework.evasion.create(evasion) 
+      evasion_module.datastore.import_options_from_hash(datastore)
+      # Generate binary
+      evasion_module.generate_bin(shellcode)
+    end
+
     # This method generates Java payloads which are a special case.
     # They can be generated in raw or war formats, which respectively
     # produce a JAR or WAR file for the java payload.
@@ -427,7 +450,13 @@ module Msf
           @nops = nops - raw_payload.length
         end
         raw_payload = prepend_nops(raw_payload)
-        gen_payload = format_payload(raw_payload)
+        # If evasion is choosen, the output will formated by the evasion module
+        unless evasion.blank?
+          gen_payload = evade_payload(raw_payload)
+        else
+          gen_payload = format_payload(raw_payload)
+        end
+        gen_payload
       end
 
       cli_print "Payload size: #{raw_payload.length} bytes"
@@ -594,6 +623,14 @@ module Msf
     # @return [False] if the payload is not a valid Metasploit Payload
     def payload_is_valid?
       (framework.payloads.keys + ['stdin']).include? payload
+    end
+
+    # This method checks if the Generator's selected evasion is valid
+    # @return [True] if the evasion is valid 
+    # @return [False] if the evasion is not valid 
+    def evasion_is_valid?
+      evasions = framework.evasion
+      (evasions.keys.include? evasion) && (evasions[evasion].method_defined?(:generate_bin))
     end
 
   end

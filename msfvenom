@@ -45,7 +45,7 @@ def init_framework(create_opts={})
   require_deps unless @framework_loaded
 
   create_opts[:module_types] ||= [
-    ::Msf::MODULE_PAYLOAD, ::Msf::MODULE_ENCODER, ::Msf::MODULE_NOP
+    ::Msf::MODULE_PAYLOAD, ::Msf::MODULE_ENCODER, ::Msf::MODULE_NOP, ::Msf::MODULE_EVASION
   ]
 
   create_opts[:module_types].map! do |type|
@@ -131,6 +131,10 @@ def parse_args(args)
 
   opt.on('--encrypt-iv      <value>', String, 'An initialization vector for --encrypt') do |e|
     opts[:encryption_iv] = e
+  end
+
+  opt.on('--evasion     <value>', String, 'Target antivirus to evade with AVleak fingerprints') do |e|
+    opts[:evasion] = e
   end
 
   opt.on('-a', '--arch            <arch>', String, 'The architecture to use for --payload and --encoders (use --list archs to list)') do |a|
@@ -394,6 +398,28 @@ def dump_nops
   "\n" + tbl.to_s + "\n"
 end
 
+def dump_evade(platform = nil, arch = nil)
+  init_framework(:module_types => [ :evasion ])
+  tbl = Rex::Text::Table.new(
+    'Indent'  => 4,
+    'Header'  => "Framework antivirus fingerprint avaible [--evasion <value>]",
+    'Columns' =>
+    [
+      "Value",
+      "Description"
+    ])
+    
+    # We want only modules that can generate a binary
+    framework.evasion.each_module(
+      'Platform' => platform ? Msf::Module::PlatformList.transform(platform.split(',')) : nil,
+      'Arch'     => arch ? arch.split(',') : nil) do |name, mod|
+        if mod.method_defined?(:generate_bin)
+          tbl << [ name, mod.new.description.split.join(' ') ]
+        end
+    end
+    "\n" + tbl.to_s + "\n"
+end
+
 begin
   generator_opts = parse_args(ARGV)
 
@@ -422,6 +448,8 @@ if generator_opts[:list]
       $stdout.puts dump_encrypt
     when "formats", "format", "f"
       $stdout.puts dump_formats
+    when "evasions", "evasion"
+      $stdout.puts dump_evade(generator_opts[:platform], generator_opts[:arch])
     when "all", "a"
       # Init here so #dump_payloads doesn't create a framework with
       # only payloads, etc.
@@ -433,8 +461,9 @@ if generator_opts[:list]
       $stdout.puts dump_archs
       $stdout.puts dump_encrypt
       $stdout.puts dump_formats
+      $stdout.puts dump_evade
     else
-      $stderr.puts "Invalid type (#{mod}). These are valid: payloads, encoders, nops, platforms, archs, encrypt, formats, all"
+      $stderr.puts "Invalid type (#{mod}). These are valid: payloads, encoders, nops, platforms, archs, encrypt, formats, evasion, all"
     end
   end
   exit(0)

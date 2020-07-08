@@ -553,3 +553,4 @@ WINAPI void SetLastError __attribute__((dllimport))(DWORD);
 WINAPI SERVICE_STATUS_HANDLE RegisterServiceCtrlHandler __attribute__((dllimport))(LPCSTR, LPHANDLER_FUNCTION);
 BOOL WINAPI StartServiceCtrlDispatcher __attribute__((dllimport))(LPSERVICE_TABLE_ENTRY);
 LPTSTR WINAPI GetCommandLine __attribute__((dllimport))(void);
+WINAPI BOOL GetComputerNameA __attribute__((dllimport))(LPSTR,LPDWORD);
