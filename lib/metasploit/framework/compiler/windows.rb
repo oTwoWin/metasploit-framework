@@ -20,7 +20,6 @@ module Metasploit
         def self.compile_c(c_template, type=:exe, cpu=Metasm::Ia32.new)
           headers = Compiler::Headers::Windows.new
           source_code = Compiler::Utils.normalize_code(c_template, headers)
-          $stderr.puts source_code
           pe = Metasm::PE.compile_c(cpu, source_code)
 
           case type

