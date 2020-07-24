@@ -70,7 +70,6 @@ int main() {
 
   def generate_bin(code)
     @payload = code
-    $stderr.puts c_template
     bin = Metasploit::Framework::Compiler::Windows.compile_c(c_template)
   end
 

@@ -26,7 +26,7 @@ class MetasploitModule < Msf::Evasion
           'Targets'     => [ ['Microsoft Windows', {}] ]
         ))
     end
-    
+
     def rc4_key
         @rc4_key ||= Rex::Text.rand_text_alpha(32..64)
     end
