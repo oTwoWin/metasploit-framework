@@ -398,11 +398,11 @@ def dump_nops
   "\n" + tbl.to_s + "\n"
 end
 
-def dump_evade(platform = nil, arch = nil)
+def dump_evasion(platform = nil, arch = nil)
   init_framework(:module_types => [ :evasion ])
   tbl = Rex::Text::Table.new(
     'Indent'  => 4,
-    'Header'  => "Framework antivirus fingerprint avaible [--evasion <value>]",
+    'Header'  => "Framework modules evasion avaible [--evasion <value>]",
     'Columns' =>
     [
       "Value",
@@ -449,7 +449,7 @@ if generator_opts[:list]
     when "formats", "format", "f"
       $stdout.puts dump_formats
     when "evasions", "evasion"
-      $stdout.puts dump_evade(generator_opts[:platform], generator_opts[:arch])
+      $stdout.puts dump_evasion(generator_opts[:platform], generator_opts[:arch])
     when "all", "a"
       # Init here so #dump_payloads doesn't create a framework with
       # only payloads, etc.
@@ -461,7 +461,7 @@ if generator_opts[:list]
       $stdout.puts dump_archs
       $stdout.puts dump_encrypt
       $stdout.puts dump_formats
-      $stdout.puts dump_evade
+      $stdout.puts dump_evasion
     else
       $stderr.puts "Invalid type (#{mod}). These are valid: payloads, encoders, nops, platforms, archs, encrypt, formats, evasion, all"
     end
