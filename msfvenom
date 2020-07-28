@@ -133,7 +133,7 @@ def parse_args(args)
     opts[:encryption_iv] = e
   end
 
-  opt.on('--evasion     <value>', String, 'Target antivirus to evade with AVleak fingerprints') do |e|
+  opt.on('--evasion     <value>', String, 'Evasion module to use') do |e|
     opts[:evasion] = e
   end
 
