@@ -9,7 +9,7 @@ class MetasploitModule < Msf::Evasion
 
     def initialize(info={})
         super(merge_info(info,
-          'Name'        => 'Microsoft Windows Defender Evasive Executable',
+          'Name'        => 'Kaspersky Evasive Executable',
           'Description' => %q{
             This module allows you to generate a Windows EXE that evades against Kaspersky.
             Multiple techniques such as shellcode encryption, source code
